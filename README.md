@@ -38,19 +38,21 @@ This guide will walk you through setting up a MERN-like full-stack application u
 
 5. Create an `index.js` file in the `backend` folder and add the following code:
    ```javascript
-   import express from 'express';
-   import dotenv from 'dotenv';
-   dotenv.config();
-
-   const app = express();
-   const PORT = process.env.PORT;
-
+   import express from 'express'; // Import Express to set up the server
+   import dotenv from 'dotenv'; // Import dotenv to load environment variables
+   dotenv.config(); // Configure dotenv to load variables from the `.env` file
+   
+   const app = express(); // Initialize an Express application
+   const PORT = process.env.PORT; // Get the port from the environment variables
+   
+   // Define a route for the root URL
    app.get('/', (req, res) => {
-       res.send('Hello, world!');
+       res.send('Hello, world!'); // Respond with "Hello, world!" when this route is hit
    });
-
+   
+   // Start the server and listen on the specified port
    app.listen(PORT, () => {
-       console.log(`Server is running on port ${PORT}`);
+       console.log(`Server is running on port ${PORT}`); // Log a message once the server starts
    });
    ```
 
@@ -100,106 +102,114 @@ This guide will walk you through setting up a MERN-like full-stack application u
 
 1. Update `index.js` to connect to MongoDB:
    ```javascript
-   import express from 'express';
-   import mongoose from 'mongoose';
-   import dotenv from 'dotenv';
-   dotenv.config();
-
-   const app = express();
-   const PORT = process.env.PORT;
-   const mongoDBUrl = process.env.MONGODB_URL;
-
+   import express from 'express'; // Import Express for server setup
+   import mongoose from 'mongoose'; // Import Mongoose for MongoDB integration
+   import dotenv from 'dotenv'; // Import dotenv to use environment variables
+   dotenv.config(); // Configure dotenv to read `.env` file
+   
+   const app = express(); // Create an Express application
+   const PORT = process.env.PORT; // Load the port number from the `.env` file
+   const mongoDBUrl = process.env.MONGODB_URL; // Load MongoDB URL from `.env` file
+   
+   // Define a route for the root URL
    app.get('/', (req, res) => {
-       res.send('Hello, world!');
+       res.send('Hello, world!'); // Respond with "Hello, world!" for this route
    });
-
+   
+   // Connect to MongoDB
    mongoose
-       .connect(mongoDBUrl)
+       .connect(mongoDBUrl) // Use the connection string from the `.env` file
        .then(() => {
-           console.log('Database Connected.');
+           console.log('Database Connected.'); // Log a success message when connected
            app.listen(PORT, () => {
-               console.log(`Server is running on port ${PORT}`);
+               console.log(`Server is running on port ${PORT}`); // Start the server after DB connection
            });
        })
        .catch((error) => {
-           console.log(error);
+           console.log(error); // Log an error if the connection fails
        });
    ```
 
 2. Create a `models` folder inside the `backend` folder.
 3. Add a `somethingModel.js` file in the `models` folder:
    ```javascript
-   import mongoose from "mongoose";
-
+   import mongoose from 'mongoose'; // Import Mongoose to define a schema and model
+   
+   // Define a schema for the `Something` collection
    const somethingSchema = mongoose.Schema({
        title: {
-           type: String,
-           required: true,
+           type: String, // The `title` field is a string
+           required: true, // It is required
        },
        year: {
-           type: Number,
-           required: true,
+           type: Number, // The `year` field is a number
+           required: true, // It is also required
        }
    });
-
+   
+   // Export the `Something` model based on the schema
    export const Something = mongoose.model('Something', somethingSchema);
    ```
 
 4. Create a `routes` folder inside the `backend` folder.
 5. Add a `somethingRoute.js` file in the `routes` folder:
    ```javascript
-   import express from "express";
-   import { Something } from "../models/somethingModel.js";
-
-   const router = express.Router();
-
+   import express from 'express'; // Import Express to create a router
+   import { Something } from '../models/somethingModel.js'; // Import the `Something` model
+   
+   const router = express.Router(); // Create a router instance
+   
+   // POST route to add a new item
    router.post("/something", async (req, res) => {
-       const { title, year } = req.body;
+       const { title, year } = req.body; // Destructure the `title` and `year` from the request body
        try {
-           const newSomething = new Something({ title, year });
-           await newSomething.save();
-           res.status(201).json({ message: "Something added successfully", newSomething });
+           const newSomething = new Something({ title, year }); // Create a new `Something` document
+           await newSomething.save(); // Save the document to the database
+           res.status(201).json({ message: "Something added successfully", newSomething }); // Respond with success
        } catch (error) {
-           res.status(500).json({ message: "Error adding something", error });
+           res.status(500).json({ message: "Error adding something", error }); // Handle errors
        }
    });
-
+   
+   // GET route to fetch all items
    router.get("/somethings", async (req, res) => {
        try {
-           const somethings = await Something.find();
-           res.status(200).json(somethings);
+           const somethings = await Something.find(); // Fetch all documents in the collection
+           res.status(200).json(somethings); // Respond with the fetched data
        } catch (error) {
-           res.status(500).json({ message: "Error fetching somethings", error });
+           res.status(500).json({ message: "Error fetching somethings", error }); // Handle errors
        }
    });
-
+   
+   // GET route to fetch a specific item by title
    router.get("/something/:title", async (req, res) => {
-       const { title } = req.params;
+       const { title } = req.params; // Get the `title` from the route parameters
        try {
-           const something = await Something.findOne({ title });
+           const something = await Something.findOne({ title }); // Find the document with the matching `title`
            if (!something) {
-               return res.status(404).json({ message: "Something not found" });
+               return res.status(404).json({ message: "Something not found" }); // Handle case where no document is found
            }
-           res.status(200).json(something);
+           res.status(200).json(something); // Respond with the fetched document
        } catch (error) {
-           res.status(500).json({ message: "Error finding something", error });
+           res.status(500).json({ message: "Error finding something", error }); // Handle errors
        }
    });
-
+   
+   // DELETE route to delete an item by title
    router.delete("/something/:title", async (req, res) => {
-       const { title } = req.params;
+       const { title } = req.params; // Get the `title` from the route parameters
        try {
-           const deletedSomething = await Something.findOneAndDelete({ title });
+           const deletedSomething = await Something.findOneAndDelete({ title }); // Find and delete the document
            if (!deletedSomething) {
-               return res.status(404).json({ message: "Something not found to delete" });
+               return res.status(404).json({ message: "Something not found to delete" }); // Handle case where no document is found
            }
-           res.status(200).json({ message: "Something deleted successfully" });
+           res.status(200).json({ message: "Something deleted successfully" }); // Respond with success
        } catch (error) {
-           res.status(500).json({ message: "Error deleting something", error });
+           res.status(500).json({ message: "Error deleting something", error }); // Handle errors
        }
    });
-
-   export default router;
+   
+   export default router; // Export the router for use in other files
    ```
 
 6. Update `index.js` to include routes:
@@ -262,73 +272,50 @@ This guide will walk you through setting up a MERN-like full-stack application u
 
 5. Replace the content of `App.jsx` with:
    ```javascript
-   import { useEffect, useState } from 'react';
-   import axios from 'axios';
-   import './App.css';
-
+   import { useEffect, useState } from 'react'; // Import hooks for managing state and lifecycle
+   import axios from 'axios'; // Import Axios for HTTP requests
+   import './App.css'; // Import styles
+   
    function App() {
-       const [title, setTitle] = useState('');
-       const [year, setYear] = useState('');
-       const [somethings, setSomethings] = useState([]);
-       const [message, setMessage] = useState('');
-       const [error, setError] = useState('');
-
+       const [title, setTitle] = useState(''); // State for the title input
+       const [year, setYear] = useState(''); // State for the year input
+       const [somethings, setSomethings] = useState([]); // State for the list of somethings
+       const [message, setMessage] = useState(''); // State for success messages
+       const [error, setError] = useState(''); // State for error messages
+   
+       // Function to add a new item
        const handleAddSomething = async () => {
            try {
-               if (!title || !year) {
+               if (!title || !year) { // Check if inputs are filled
                    setError('Please fill in both title and year');
                    return;
                }
-
-               await axios.post('http://localhost:5000/something/something', { title, year });
-               setMessage('Something added successfully!');
-               setTitle('');
-               setYear('');
+   
+               await axios.post('http://localhost:5000/something/something', { title, year }); // POST request to add item
+               setMessage('Something added successfully!'); // Set success message
+               setTitle(''); // Clear title input
+               setYear(''); // Clear year input
            } catch (error) {
-               setError('Failed to add something');
+               setError('Failed to add something'); // Handle error
            }
        };
-
+   
+       // Function to fetch all items
        const handleFetchSomethings = async () => {
            try {
-               const response = await axios.get('http://localhost:5000/something/somethings');
-               setSomethings(response.data);
-               setMessage('Fetched all somethings successfully!');
+               const response = await axios.get('http://localhost:5000/something/somethings'); // GET request to fetch items
+               setSomethings(response.data); // Update state with fetched items
+               setMessage('Fetched all somethings successfully!'); // Set success message
            } catch (error) {
-               setError('Failed to fetch somethings');
+               setError('Failed to fetch somethings'); // Handle error
            }
        };
-
+   
+       // Fetch all items on component mount
        useEffect(() => {
-           handleFetchSomethings();
+           handleFetchSomethings(); // Call fetch function
        }, []);
-
-       const handleDeleteSomething = async (titleToDelete) => {
-           try {
-               const response = await axios.delete(`http://localhost:5000/something/something/${titleToDelete}`);
-               if (response.status === 200) {
-                   setMessage('Something deleted successfully!');
-                   handleFetchSomethings();
-               }
-           } catch (error) {
-               setError('Failed to delete something');
-           }
-       };
-
-       const handleFetchSpecificSomething = async (titleToFetch) => {
-           try {
-               const response = await axios.get(`http://localhost:5000/something/something/${titleToFetch}`);
-               if (response.status === 200) {
-                   setMessage('Fetched something successfully!');
-                   setSomethings([response.data]);
-               } else {
-                   setMessage('Something not found');
-               }
-           } catch (error) {
-               setError('Failed to fetch specific something');
-           }
-       };
-
+   
        return (
            <div className="App">
                <h1>Manage Somethings</h1>
@@ -377,8 +364,9 @@ This guide will walk you through setting up a MERN-like full-stack application u
            </div>
        );
    }
-
+   
    export default App;
+
    ```
 
 ---

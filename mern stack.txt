@@ -1,0 +1,367 @@
+1. create main folder, then frontend, backend subfolders
+2. run:
+	cd backend
+	npm init -y
+	npm i mongoose express nodemon dotenv cors
+3. go to package.json
+	under scripts, paste the following:
+		"start": "node index.js",
+    		"dev": "nodemon index.js"
+	also update type from commonjs to module
+4. in the backend folder, create new file .env and paste the following:
+	PORT=5000
+5. in the backend folder, create new file index.js and paste the following:
+
+// Import the express module to create a server
+import express from 'express';
+
+// Load environment variables from the .env file into process.env
+import dotenv from 'dotenv';
+dotenv.config();
+
+// Create an instance of an Express application
+const app = express();
+
+// Use the PORT variable from the .env file to specify the port the server will listen on
+const PORT = process.env.PORT;
+
+// Set up a route to handle GET requests to the root URL ('/')
+app.get('/', (req, res) => {
+  // Send a 'Hello, world!' response when the root URL is accessed
+  res.send('Hello, world!');
+});
+
+// Start the server and make it listen on the specified port
+app.listen(PORT, () => {
+  // Log a message to the console indicating that the server is running
+  console.log(`Server is running on port ${PORT}`);
+});
+
+6. run npm run dev in terminal
+7. go to http://localhost:5000/  - if you see "Hello, world!" it's working
+8. go to https://www.mongodb.com/ and sign in
+9. on the top left, click the dropdown and click new project
+10. put a project name and click next and then click create project
+11. now under overview, under create a cluster, click create
+12. click the free cluster, give it a name, and then click create deployment
+13. on the pop up you will see a username and password, copy this somewhere and then click create database user
+14. you can now close the pop up
+15. on the left, go to network access
+16. click edit under actions
+17. on the pop up click allow access from anywhere and then click confirm
+18. now go back to clusters and click connect
+19. on the pop up click Drivers
+20. copy the url found under 3. Add your connection string into your application code
+21. go back to your .env file and type the following:
+	MONGODB_URL={URL THAT YOU COPIED EARLIER}
+22. change <db_password> to the password you saved earlier
+23. optional: you can also give a collection name by writing something right before ?retryWrites=true
+24. now go back to index.js and paste this:
+// Import the express module to create a server
+import express from 'express';
+
+// Import mongoose to interact with MongoDB
+import mongoose from 'mongoose';
+
+// Load environment variables from the .env file into process.env
+import dotenv from 'dotenv';
+dotenv.config();
+
+// Create an instance of an Express application
+const app = express();
+
+// Use the PORT variable from the .env file to specify the port the server will listen on
+const PORT = process.env.PORT;
+
+// Retrieve the MongoDB URL from environment variables
+const mongoDBUrl = process.env.MONGODB_URL;
+
+// Set up a route to handle GET requests to the root URL ('/')
+app.get('/', (req, res) => {
+  // Send a 'Hello, world!' response when the root URL is accessed
+  res.send('Hello, world!');
+});
+
+// Connect to the MongoDB database using the URL from environment variables
+mongoose
+    .connect(mongoDBUrl)  // Attempt to connect to the database
+    .then(() => {  // Once connected, proceed with the following actions
+        console.log('Database Connected.');  // Log success message
+
+        // Start the server and make it listen on the specified port
+        app.listen(PORT, () => {
+            // Log a message to the console indicating that the server is running
+            console.log(`Server is running on port ${PORT}`);
+        });
+    })
+    .catch((error) => {  // If the connection fails, catch the error
+        console.log(error);  // Log the error message
+    })
+
+25. under backend folder, create new folder models
+26. under models folder, create new file called somethingModel.js
+27. inside somethingModel.js, paste the following:
+
+import mongoose from "mongoose";
+
+const somethingSchema = mongoose.Schema(
+    {
+        title: {
+            type: String,
+            required: true,
+        },
+        year: {
+            type: Number,
+            required: true,
+        }
+    }
+);
+
+export const Something = mongoose.model('Something', somethingSchema )
+
+28. under backend folder, create new folder routes
+29. under routes folder, create new file called somethingRoute.js
+30. inside somethingRoute.js, paste the following:
+import express from "express"; // Importing the express framework
+import { Something } from "../models/somethingModel.js"; // Import the "Something" model to interact with the database
+
+const router = express.Router(); // Creating an express router instance for handling routes
+
+// Route to add a new "something"
+router.post("/something", async (req, res) => {
+    const { title, year } = req.body; // Destructure title and year from the request body
+
+    try {
+        const newSomething = new Something({ title, year }); // Create a new "something" document with the provided title and year
+        await newSomething.save(); // Save the new document to the MongoDB database
+        res.status(201).json({ message: "Something added successfully", newSomething }); // Respond with success message and the newly created object
+    } catch (error) {
+        res.status(500).json({ message: "Error adding something", error }); // If there's an error, respond with an error message
+    }
+});
+
+// Route to see all "somethings"
+router.get("/somethings", async (req, res) => {
+    try {
+        const somethings = await Something.find(); // Fetch all documents of "Something" from the database
+        res.status(200).json(somethings); // Respond with a 200 status and the fetched data
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching somethings", error }); // If an error occurs, respond with an error message
+    }
+});
+
+// Route to find a specific "something" by title
+router.get("/something/:title", async (req, res) => {
+    const { title } = req.params; // Get the title parameter from the route
+
+    try {
+        const something = await Something.findOne({ title }); // Search for the "something" by the title in the database
+        if (!something) {
+            return res.status(404).json({ message: "Something not found" }); // If no "something" is found, respond with a 404 error
+        }
+        res.status(200).json(something); // If found, respond with the "something" data
+    } catch (error) {
+        res.status(500).json({ message: "Error finding something", error }); // If an error occurs, respond with an error message
+    }
+});
+
+// Route to delete a "something" by title
+router.delete("/something/:title", async (req, res) => {
+    const { title } = req.params; // Get the title parameter from the route
+
+    try {
+        const deletedSomething = await Something.findOneAndDelete({ title }); // Delete the "something" from the database by title
+        if (!deletedSomething) {
+            return res.status(404).json({ message: "Something not found to delete" }); // If no "something" is found to delete, respond with a 404 error
+        }
+        res.status(200).json({ message: "Something deleted successfully" }); // Respond with a success message once deletion is successful
+    } catch (error) {
+        res.status(500).json({ message: "Error deleting something", error }); // If an error occurs during deletion, respond with an error message
+    }
+});
+
+export default router; // Export the router to be used in the main app
+
+31. go back to index.js, delete everything, and paste the following:
+// Import the express module to create a server
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+
+// Routes
+import somethingRouter from './routes/somethingRoute.js';
+
+// Load environment variables from the .env file into process.env
+import dotenv from 'dotenv';
+dotenv.config();
+
+// Create an instance of an Express application
+const app = express();
+
+// Use the PORT variable from the .env file to specify the port the server will listen on
+const PORT = process.env.PORT;
+const mongoDBUrl = process.env.MONGODB_URL
+
+// Middleware for CORS - Allow all origins
+app.use(cors());
+
+// Middleware between front-end to back-end
+app.use(express.json());
+
+// endpoints
+app.use("/something", somethingRouter)
+
+mongoose
+    .connect(mongoDBUrl)
+    .then(() => {
+        console.log('Database Connected.');
+        // Start the server and make it listen on the specified port
+        app.listen(PORT, () => {
+            // Log a message to the console indicating that the server is running
+            console.log(`Server is running on port ${PORT}`);
+        });
+    })
+    .catch((error) => {
+        console.log(error);
+    })
+
+32. open a new terminal and run cd frontend
+33. then run: npm create vite@latest .
+34. choose react using arrow keys
+35. choose javascript using arrow keys
+36. run npm intall 
+37. run npm install axios 
+38. run npm run dev
+39. go to App.jsx and paste the following:
+
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import './App.css';
+
+function App() {
+  const [title, setTitle] = useState('');
+  const [year, setYear] = useState('');
+  const [somethings, setSomethings] = useState([]);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const handleAddSomething = async () => {
+    try {
+      if (!title || !year) {
+        setError('Please fill in both title and year');
+        return;
+      }
+
+      await axios.post('http://localhost:5000/something/something', {
+        title,
+        year,
+      });
+
+      setMessage('Something added successfully!');
+      setTitle('');
+      setYear('');
+      // Optionally, call fetchSomethings to refresh after adding something
+    } catch (error) {
+      setError('Failed to add something');
+    }
+  };
+
+  const handleFetchSomethings = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/something/somethings');
+      setSomethings(response.data);
+      setMessage('Fetched all somethings successfully!');
+    } catch (error) {
+      setError('Failed to fetch somethings');
+    }
+  };
+
+  useEffect(() => {
+    handleFetchSomethings();
+  }, [])
+
+  const handleDeleteSomething = async (titleToDelete) => {
+    try {
+      const response = await axios.delete(`http://localhost:5000/something/something/${titleToDelete}`);
+
+      if (response.status === 200) {
+        setMessage('Something deleted successfully!');
+        // Optionally, call fetchSomethings to refresh after deletion
+      }
+    } catch (error) {
+      setError('Failed to delete something');
+    }
+  };
+
+  const handleFetchSpecificSomething = async (titleToFetch) => {
+    try {
+      const response = await axios.get(`http://localhost:5000/something/something/${titleToFetch}`);
+
+      if (response.status === 200) {
+        setMessage('Fetched something successfully!');
+        setSomethings([response.data]); // Display only the specific item
+      } else {
+        setMessage('Something not found');
+      }
+    } catch (error) {
+      setError('Failed to fetch specific something');
+    }
+  };
+
+  return (
+    <div className="App">
+      <h1>Manage Somethings</h1>
+
+      {/* Add Something Form */}
+      <div>
+        <h2>Add Something</h2>
+        <input
+          type="text"
+          placeholder="Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <input
+          type="number"
+          placeholder="Year"
+          value={year}
+          onChange={(e) => setYear(e.target.value)}
+        />
+        <button onClick={handleAddSomething}>Add</button>
+      </div>
+
+      {/* Fetch All Somethings */}
+      <div>
+        <h2>Fetched Elements</h2>
+        <button onClick={handleFetchSomethings}>Fetch All</button>
+        <ul>
+          {somethings.map((something) => (
+            <li key={something._id}>
+              {something.title} ({something.year})
+              <button onClick={() => handleDeleteSomething(something.title)}>Delete</button>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Fetch Specific Something */}
+      <div>
+        <h2>Fetch Something by Title</h2>
+        <input
+          type="text"
+          placeholder="Enter title"
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <button onClick={() => handleFetchSpecificSomething(title)}>Fetch</button>
+      </div>
+
+      {/* Message and Error Handling */}
+      {message && <div className="message">{message}</div>}
+      {error && <div className="error">{error}</div>}
+    </div>
+  );
+}
+
+export default App;
+
+40. You should be able to test out all 4 apis from the frontend page now.
